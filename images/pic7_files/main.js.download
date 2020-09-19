@@ -1,0 +1,249 @@
+function addToCart(pId, qty)
+{
+
+	$.post('/cart/add/', {pid:pId, qty:qty}, function(r) {
+
+		if(r.status == 1)
+		{
+			$('.header-cart').html(r.cart);
+			$('#product-cart-modal').html(r.modal);
+			$("#cartModal").modal("show");
+		}
+		else
+		{
+			genErrorWithMsg(r.message);
+		}
+
+	});
+
+}
+
+function genError() {
+    swal({ title: 'Error', text: 'Unable to contact server.\nPlease try again', type: 'error', confirmButtonText: 'OK' });
+}
+
+function genErrorWithMsg(msg)
+{
+	swal({ title: 'Error', text: msg, type: 'error', confirmButtonText: 'OK' });
+}
+
+function spin() {
+     $('body').spin('modal');
+}
+
+
+
+$(document).ready(function() {
+
+	$( '.header-cart, .shop-cart' ).on( 'click', '.js--remove-item', function( ev ) {
+
+		$this = $(this);
+
+		$.get('/cart/remove/' + $this.data('id') + '/', function(r) {
+
+			if(r.status == 1) {
+
+				$('[data-id="' + $this.data('id') + '"]').parents( $this.data('target') ).animate({
+					opacity: 0
+				}, 'swing', function() {
+					$(this).slideUp();
+					$('.header-cart').html(r.cart);
+					$('#cart-page-total').html(r.total);
+					invalidate_shipping();
+				});
+			}
+
+		});
+
+		return false;
+	});
+
+
+	$('#calculate-shipping').on('click', function() {
+
+		spin();
+
+		$.ajax({
+            type : 'POST',
+            url: '/checkout/shipping/',
+            dataType : 'json',
+            data : { postcode : $('#shipping_postcode').val(), suburb : $('#shipping_suburb').val() },
+            success : function(data) {
+
+            	if(data.status != 1)
+            	{
+            		swal({ title: data.message, text: data.message, type: 'error', confirmButtonText: 'OK' });
+            	}
+                else if(data.status == 1)
+                {
+                    $('.shop_table').html(data.order);
+          					$('#place-order').show();
+          					$('#calculate-shipping').hide();
+                    $('#payment-method').show();
+                }
+            },
+            error : function(data) {
+                genError();
+            },
+            complete: function(data) {
+                spin();
+            }
+        });
+
+/*
+		$.post('/checkout/shipping/', { postcode : $('#shipping_postcode').val(), suburb : $('#shipping_suburb').val() }, function(data) {
+
+
+
+			if(data.status == 1)
+			{
+				$('.shop_table').html(data.order);
+				$('#place-order').show();
+				$('#calculate-shipping').hide();
+			}
+			else
+			{
+				$('.shop_table').html(data.order);
+			}
+
+			spin();
+
+
+		});
+
+*/
+	});
+
+	$('#contact-form').submit(function(e) {
+
+		e.preventDefault;
+
+		spin();
+
+		$.ajax({
+            type : 'POST',
+            url: '/contact/',
+            dataType : 'json',
+            data : $('#contact-form').serialize(),
+            success : function(data) {
+
+            	if(data.status != 1)
+            	{
+            		swal({ title: data.title, text: data.message, type: data.type, confirmButtonText: 'OK' });
+            	}
+                else if(data.status == 1)
+                {
+                    $('#contact-form .form-control').val('');
+                    $('#contact-form textarea').val('');
+                    swal({ title: data.title, text: data.message, type: data.type, confirmButtonText: 'OK' });
+                }
+            },
+            error : function(data) {
+                genError();
+            },
+            complete: function(data) {
+                spin();
+            }
+        });
+
+        return false;
+
+	});
+
+
+});
+
+$(function() {
+
+  if($('#zoom-single').length == 1)
+  {
+    $('#zoom-single').elevateZoom({cursor: 'pointer', zoomType  : 'inner', zoomWindowFadeIn: 300, zoomWindowFadeOut: 300});
+    var ez= $('#zoom-single').data('elevateZoom');;
+    $('#zoom-single').bind('click', function(e) {   $.fancybox(ez.getGalleryList());  return false; });
+  }
+	
+  else if($('#zoom').length > 0)
+  {
+    $("#zoom").elevateZoom({gallery:'gallery', cursor: 'pointer', zoomType  : 'inner', zoomWindowFadeIn: 300, zoomWindowFadeOut: 300,  galleryActiveClass: 'active', imageCrossfade: true, loadingIcon: 'http://www.elevateweb.co.uk/spinner.gif'});
+    var ez= $('#zoom').data('elevateZoom');;
+    $("#zoom").bind("click", function(e) {  $.fancybox(ez.getGalleryList()); return false; });
+  }
+
+	$('#place-order').on('click', function() {
+
+  	spin();
+  	$('#checkout-form').attr('method', 'POST');
+  	$('#checkout-form').attr('action', '/checkout/payment/');
+  	$('#checkout-form').submit();
+
+  });
+
+  $('#shipping-information .input-text').attr('readonly', $('#billing-shipping').prop('checked'));
+
+  $('#billing-shipping').on('change', function() {
+
+    $('#shipping-information .input-text, #shipping-information select').attr('readonly', $(this).prop('checked'));
+    if($(this).prop('checked'))
+      copy_information();
+  });
+
+
+  $('#billing-information .input-text, #billing-information select').bind('keyup change', function() {
+    if($('#billing-shipping').prop('checked'))
+      copy_information();
+  });
+
+
+  $('#shipping-information input[name="shipping_postcode"]').bind('keyup change', function() {
+      invalidate_shipping();
+  });
+
+
+});
+
+function copy_information()
+{
+  $('#shipping-information input[name="shipping_first_name"]').val($('#billing-information input[name="billing_first_name"]').val());
+  $('#shipping-information input[name="shipping_last_name"]').val($('#billing-information input[name="billing_last_name"]').val());
+  $('#shipping-information input[name="shipping_address_1"]').val($('#billing-information input[name="billing_address_1"]').val());
+  $('#shipping-information input[name="shipping_address_2"]').val($('#billing-information input[name="billing_address_2"]').val());
+  $('#shipping-information input[name="shipping_suburb"]').val($('#billing-information input[name="billing_suburb"]').val());
+  $('#shipping-information select[name="shipping_state"]').val($('#billing-information select[name="billing_state"]').val());
+  $('#shipping-information input[name="shipping_postcode"]').val($('#billing-information input[name="billing_postcode"]').val()).change();
+  $('#shipping-information input[name="shipping_phone"]').val($('#billing-information input[name="billing_phone"]').val());
+}
+
+function invalidate_shipping() {
+  $('#place-order').hide();
+  $('#calculate-shipping').show();
+  $('#payment-method').hide();
+}
+
+
+function show_cc_form()
+{
+  if($('input[name="payment_method"]:checked').val() == 'Credit Card')
+  {
+    $('#cc-form').show();
+  }
+  else
+  {
+    $('#cc-form').hide();
+  }
+}
+
+
+$(function() {
+
+  show_cc_form();
+
+  $('input[name=payment_method]').change(function() {
+    show_cc_form();
+  });
+
+  $('#side-promo-tab').click(function() {
+    $('#side-promo').toggleClass('open');
+  });
+
+
+});

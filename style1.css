@@ -1,0 +1,48 @@
+html{
+	
+	max-width:1300px;
+	max-height:2000px;
+    margin: 8px auto 8px auto;
+    position: left;
+       color: green;
+
+}
+
+th, td {
+  border-bottom: 1px solid #ddd;
+}
+
+#link {
+  float: left;
+  width: 400px;
+}
+
+ul {
+  list-style-type: none;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  background-color: #008000;
+}
+
+li {
+  float: left;
+  width: 200px;
+}
+
+li a {
+  display: block;
+  color: #FFFF00;
+  text-align: center;
+  padding: 14px 20px;
+  text-decoration: none;
+}
+
+li a:hover:not(.active) {
+  background-color: #111;
+}
+
+.active {
+  background-color: #4CAF50;
+}
+
